@@ -1,0 +1,585 @@
+
+
+De Montfort University
+
+Faculty of Computing, Engineering and Media
+
+BSc Cyber Security
+
+Privacy Sentinel:
+
+A Python-Based Analysis Tool for Evaluating Privacy Label Accuracy and Transparency
+
+
+
+Student: Eleanor Fon
+
+Supervisor: Dr Alex Fasanmade
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Chapter 1: Introduction
+
+
+
+1.1 Introduction
+
+It is almost impossible to go a single day without using a mobile application of some kind. Whether that is checking a banking app on the commute, tracking a fitness goal, or scrolling through social media before bed, smartphones have become deeply personal devices and, by extension, deeply revealing ones. Every tap and swipe generates data. Most users know this in a vague, background sort of way, but very few have any clear picture of exactly what is being collected, where it goes, or who it is shared with. That gap between knowing and understanding is the problem this project sets out to explore.
+
+The scale of the mobile app ecosystem makes this problem genuinely significant. As of 2024, there are over 5.7 million applications available across the Apple App Store and Google Play Store combined, and research suggests the average UK smartphone user interacts with at least nine different apps on a typical day (Statista, 2024). Behind every one of those interactions sits a data economy advertiser, analytics companies, third-party SDKs that depends, in large part, on users not fully understanding what they have agreed to.
+
+Regulators have not been passive in the face of this. The General Data Protection Regulation (GDPR) came into force across the EU in May 2018, bringing with it serious obligations around transparency and informed consent. In the UK, the Data Protection Act 2018 carried those obligations forward, and after Brexit the UK GDPR became the operative framework under the oversight of the Information Commissioner's Office (ICO). Alongside regulation, the app store platforms themselves made moves: Apple made privacy labels mandatory for App Store submissions from December 2020, and Google introduced its Data Safety Section for Google Play in July 2022. The idea was a good one strip out the legalese, give users a short, standardised summary of what an app does with their data, modelled on the nutrition label on a packet of food.
+
+The problem is that the evidence suggests it has not really worked out that way. Study after study has found that a significant proportion of these labels are inaccurate, incomplete, or simply missing. Khandelwal et al. (2023b) found a 60% inconsistency rate when comparing how the same apps described their privacy practices on iOS versus Android. Baalous and Althobaiti (2025) found that 67.7% of Android apps showed discrepancies between their declared Data Safety sections and what their actual code was doing. These are not marginal findingsthey represent a systematic failure of a system that was supposed to make data transparency accessible to ordinary people.
+
+Privacy Sentinel is a direct response to that failure. The project develops a Python-based tool that can collect, store, compare, and score privacy label data from applications available on both platforms. It does not attempt to perform the kind of deep code analysis that would require substantial infrastructure. Instead, it focuses on what can be assessed through careful, structured examination of publicly available label content, and packages that methodology into a tool that is usable by someone without specialist expertise.
+
+1.2 Background
+
+The idea that privacy information could be presented in a standardised, visual formatrather than buried inside a forty-page legal document nobody readsgoes back at least to 2009. Kelley, Bresee, Cranor and Reeder, working at Carnegie Mellon's CyLab Usable Privacy and Security Laboratory, proposed what they called a "nutrition label for privacy." The analogy was deliberate and well-chosen: food nutrition labels work because they present complex information in a consistent, comparable format that does not require any specialist knowledge to interpret. Their user studies found that participants could locate specific privacy information far more quickly when it was presented in this kind of structured format, compared to trying to find the same information in a conventional privacy policy document (Kelley et al., 2009).
+
+That foundational research directly shaped what Apple and Google eventually built. Apple's privacy label system, launched in December 2020, requires developers to declare their data practices under three headings: Data Used to Track You, Data Linked to You, and Data Not Linked to You. Google's Data Safety Section, which followed in 2022, goes a bit further it also asks about data sharing, encryption, and whether users can request deletion. Both systems are entirely reliant on developers self-reporting honestly and accurately. There is no automated verification. The platform takes the developer's word for it.
+
+In the UK specifically, the regulatory picture is slightly more complicated than in the EU. Post-Brexit, the UK GDPR operates independently of its EU counterpart, and whilst the substance remains very similar, there are now two distinct regimes with potential for divergence over time. The ICO provides guidance on mobile app privacy, but enforcement at the level of individual app label inaccuracies has been limited. The Privacy and Electronic Communications Regulations (PECR) add a further layer of complexity, particularly around tracking and consent, which cuts across the app store label systems in ways that have received comparatively little academic attention in a UK-specific context.
+
+The demand for tools that can help evaluate label quality tools accessible to researchers, regulators, or even well-informed members of the public is therefore both real and largely unmet. Most of the existing research either documents the scale of the problem through large, automated studies, or proposes methodologies that require significant technical infrastructure to deploy. Privacy Sentinel is designed to sit between those two options: something structured enough to produce meaningful, comparable results, but accessible enough that it does not require specialist infrastructure to run.
+
+1.3 Project Aim
+
+The aim of this project is to design, develop, and evaluate a Python-based tool Privacy Sentinel that enables structured, cross-platform comparison and assessment of privacy label data for mobile applications available on both the Apple App Store and the Google Play Store. 
+
+1.4 Project Objectives
+
+The following objectives have been set to deliver against this aim:
+
+To develop Python scripts that support the manual collection and structured storage of privacy label data from both the Apple App Store and the Google Play Store.
+
+To design and implement a relational database schema that can organise privacy label information for a minimum of fifty mobile applications.
+
+To implement comparison algorithms capable of identifying discrepancies in privacy label content between the two platforms for the same application.
+
+To design and implement a transparency scoring system that rates label completeness and consistency against criteria derived from the research literature.
+
+To build interactive data visualisations, including bar charts, scatter plots, and comparison tables, using Plotly Express.
+
+To develop a Streamlit-based web interface that presents analysis results in a format navigable by users without advanced programming knowledge.
+
+To test the tool against a sample of applications across social media, health, and finance categories, evaluating consistency and reliability of the scoring methodology.
+
+To produce clear user-facing documentation including a setup guide and worked examples that would enable another researcher or practitioner to replicate the methodology independently.
+
+
+
+1.5 Research Gaps
+
+The academic literature on privacy label accuracy has grown considerably since 2020, but several meaningful gaps remain. The first and most significant is methodological. Most large-scale studies rely on automated analysis scraping app store metadata, parsing APK files, running static code analysis. These produce impressively large datasets but are not well-suited to assessing whether a disclosure is vague, internally inconsistent, or technically accurate but practically misleading. Manual, structured assessment can catch these things in a way that automation currently cannot.
+
+The second gap concerns cross-platform comparison. Despite millions of applications appearing on both iOS and Android, studies that examine the same app's label behaviour across both platforms remain relatively rare. Khandelwal et al. (2023b) and Rodriguez et al. (2023) are among the few that do this systematically. Privacy Sentinel is built around cross-platform comparison as its core analytical function.
+
+The third gap is the absence of accessible, open-source tooling. Academic research has produced findings but has not, in the main, produced tools that people outside the research community can use. Privacy Sentinel directly addresses this by packaging a structured evaluation methodology in a form that is replicable, documented, and designed to be run without specialist infrastructure.
+
+Finally, from a UK perspective, the intersection between app store privacy labels and UK GDPR compliance has received very limited dedicated attention. The label systems were designed primarily in the context of US and EU regulatory expectations, and whether they adequately serve the specific requirements of the UK's post-Brexit data protection regime is a question that deserves more scrutiny than it has received.
+
+
+
+Chapter 2: Literature Review
+
+
+
+2.1 Introduction
+
+This chapter reviews the body of research that sits directly behind Privacy Sentinel. The coverage moves from the theoretical foundations of privacy labelling where the idea came from and what the academic case for it was through to the empirical picture of how well the industry implementations have worked, the regulatory context that gives the problem its legal weight, and the landscape of analytical tools and approaches that already exist.
+
+2.2 Why Privacy Policies Were Never Going to Work
+
+To understand why privacy labels were seen as a necessary intervention, it helps to start with the thing they were supposed to replace. Text-based privacy policies have a well-documented and frankly spectacular failure rate as transparency mechanisms. McDonald and Cranor (2008) ran the numbers and found that if an average US internet user read every privacy policy they encountered in a year, it would take around 76 full working days. That figure gets cited constantly in this literature, and rightly soit is a damning illustration of a system that is nominally about informing people but structurally designed in a way that makes it impossible for them to be informed.
+
+Jensen and Potts (2004) reached the same conclusion from a different angle, finding through user studies that people routinely made decisions about sharing personal information without meaningfully engaging with privacy policy content. The policies existed. Nobody read them. Kelley et al. (2009) pushed this analysis further by identifying that the problem was not just one of user behaviour it was a design failure. Privacy policies are written by legal teams for legal protection. They are intentionally vague in places. They are not structured to enable quick, comparative assessment across multiple apps. The "nutrition label for privacy" concept they proposed was an attempt to fix that structural problem, and their user studies were genuinely encouraging participants using the proposed label format found information faster, made fewer errors, and expressed greater confidence in their understanding (Kelley et al., 2009).
+
+The justification for privacy labels and by extension for a tool like Privacy Sentinel rests on the premise that better-formatted privacy information can actually change user decision-making. The evidence from Kelley et al. (2009), and the follow-up standardisation work by Kelley, Cesca, Bresee and Cranor (2010), suggests people can use privacy information to make decisions they just need it presented in a usable form. The implication is that label accuracy matters, because inaccurate labels are, in some respects, worse than no labels at all: they give users false confidence.
+
+2.3 Apple's Privacy Labels: What the Data Shows
+
+Apple's mandatory privacy label system, which came into effect in December 2020, attracted academic attention very quickly. Li et al. (2022a) conducted what remains the most comprehensive early analysis of adoption patterns, tracking over 1.4 million App Store applications through weekly snapshots between April and November 2021. The headline finding was that 51.6% of apps still had no privacy label nearly a year after the requirement was introduced. 
+
+Scoccia, Autili, Stilo and Inverardi (2022) added a longitudinal dimension to this picture, tracking the top 2,000 iOS apps from March 2021 to March 2022. They found adoption growing slowly but steadily around 0.5% per week reaching approximately 60.5% by the end of the observation period. The content of those labels was where things got interesting. Some 42.1% of labelled apps declared that they collected no data at all. As the authors themselves noted with appropriate scepticism, this is an almost implausibly high figure for commercial applications. It strongly suggests that a significant proportion of "compliant" labels were, in any substantive sense, misleading (Scoccia et al., 2022).
+
+Koch, Wessels, Altpeter, Olvermann and Johns (2022) took the verification angle, examining whether iOS privacy labels were honest representations of what apps were doing with network traffic. They found multiple apps transmitting data without properly disclosing it. Ali, Balash, Kodwani, Wu, Kanich and Aviv (2023) looked at the relationship between label disclosures and the same developers' own privacy policies, finding significant gasps were not even consistent with their own documentation.
+
+Table 2.1 summarises the key quantitative findings from the primary studies on privacy label accuracy across both platforms.
+
+
+
+Table 2.1: Summary of key empirical studies on privacy label accuracy (2022–2025)
+
+2.4 Google Play's Data Safety Section: A Different Design, Similar Problems
+
+Google's approach to privacy labelling, introduced as the Data Safety Section in 2022, differs from Apple's in some meaningful ways. It asks developers to disclose not just what data is collected but what is shared, whether data is encrypted in transit, and whether users can request deletion. On paper, this is a more comprehensive framework. In practice, the same fundamental weakness applies: developers self-report, and nobody verifies.
+
+Baalous and Althobaiti (2025) conducted a careful static analysis of 4,980 Android applications, comparing declared data types in the Data Safety section against actual permission requests in the AndroidManifest.xml files. The result was a 67.7% inconsistency rate more than two-thirds of apps were not accurately describing their own behaviour. Storage-related permissions were particularly problematic: apps were routinely accessing audio files, photos, and videos without declaring this in their Data Safety section.
+
+Khandelwal, Nayak, Chung and Fawaz (2023a) examined the Data Safety Section from the developer perspective, and what they found complicated the picture in an interesting way. They identified both under-reporting and over-reporting, suggesting that the inaccuracies are not all a matter of deliberate concealment. Some developers appear genuinely confused about what they are supposed to declare. This aligns with Li et al. (2022b), who conducted developer interviews and found that many struggled to understand which data categories applied to their specific app, and particularly how to account for third-party SDKs whose data collection behaviour they may not fully understand.
+
+This is an important nuance. It is easy to frame the privacy label problem as one of developers being dishonest. The evidence suggests it is at least partly a problem of developers being lost in a system that is poorly designed to support accurate disclosure. Gardner, Feng, Reiman, Lin, Jain and Sadeh (2022) made this argument explicitly, and Cranor (2022), writing in Communications of the ACM, argued that the mobile app privacy label system was missing key ingredients for success, including verification infrastructure that would make self-reporting meaningfully accountable.
+
+2.5 The Cross-Platform Consistency Problem
+
+Perhaps the most counterintuitive finding in this literature concerns apps that appear on both platforms simultaneously. If a developer is accurately reporting their app's data practices, the labels on iOS and Android should describe the same reality. The consistent finding that they frequently do not raises serious questions about what these labels actually represent.
+
+Khandelwal et al. (2023b) examined over 100,000 apps listed on both stores and found a 60% inconsistency rate. Rodriguez, Jain, Alamo and Sadeh (2023) used a smaller but more deeply examined sample and found not just that labels differed, but that the differences followed identifiable patterns suggesting developers might be adopting a more cautious approach on one platform than the other, possibly in response to different enforcement cultures or community norms. What this implies is that privacy labels are, for many developers, a compliance exercise rather than a genuine attempt at transparency.
+
+2.6 Do Users Actually Benefit From Labels?
+
+A parallel strand of the literature asks whether, even when labels are accurate, users understand and act on them. The answer, unfortunately, is mixed. Zhang, Feng, Yao, Cranor and Sadeh (2022) examined the usability of iOS privacy labels and found that whilst users could locate and read the information when prompted, they often struggled to interpret specific data category names in practice, or to translate the information into a meaningful assessment of risk. Knowing that an app collects "usage data" or "identifiers" does not, for most people, translate into a concrete sense of what that means for their privacy.
+
+Kollnig, Shuba, Van Kleek, Binns and Shadbolt (2022) looked at whether Apple's App Tracking Transparency framework changed developer behaviour and found a mixed picture. Some apps reduced tracking-related activity; others found ways to maintain data collection whilst adapting to the new consent requirements.
+
+2.7 The Regulatory Context
+
+The regulatory framework within which all of this sits is, in the UK, primarily the UK GDPR and the Data Protection Act 2018. The transparency obligations under UK GDPR Article 13 are specific and extensive: data subjects must receive information about the controller, the legal basis for processing, the purposes of processing, third-party recipients, and any automated decision-making, among other requirements. A privacy label is unlikely to satisfy these requirements in full on its own. Its role is more that of an entry point, something that draws users' attention to the existence of data practices and directs them towards fuller information.
+
+Guaman, Noguera and Enriquez (2023) examined GDPR compliance in Android apps through automated analysis and found that cross-border data transfer disclosures, required under GDPR Article 46, were frequently missing from privacy policies. Research published by ACM SIGSAC (2024) found that 77.1% of observed data collection behaviours in mobile apps lacked any privacy notice to the user, and that of those which did include a notice, 86.35% failed to include all seven elements required by GDPR Article 13.
+
+A recent Elsevier publication examining privacy practices in finance applications across Germany, Australia, and the US (ScienceDirect, 2025) found that even in heavily regulated sectors, users remain deeply concerned about data handling and that existing disclosure mechanisms including privacy labels had not succeeded in addressing those concerns. The recommendation was for simpler documentation and stronger enforcement, which aligns with what Privacy Sentinel is trying to contribute from a tooling perspective.
+
+2.8 Existing Analytical Approaches
+
+Several research efforts have developed methodologies for evaluating privacy label accuracy programmatically. Static analysis of Android APK files is the most common approach and has produced meaningful findings. The limitation of static analysis is that it can only capture what is visible in the code without execution. Data collection that happens at runtime, or through obfuscated third-party library code, may not be detectable. Dynamic analysis monitoring app behaviour during actual execution addresses some of this but is significantly more resource-intensive. The combination of both is cited as best practice in the literature (Guaman et al., 2023), though the infrastructure requirements are substantial.
+
+The gap in this landscape is specific and worth naming clearly. There are capable academic tools at the high-infrastructure end of the spectrum. What is missing is something at the other end: accessible, open-source, documented, and designed to be used by people who are not running a research lab. Cranor (2022) essentially identified this as a missing ingredient in the privacy label ecosystem. Privacy Sentinel is positioned to begin filling it.
+
+
+
+Chapter 3: Methodology
+
+	
+
+3.1 Introduction
+
+This chapter presents the full methodological framework underpinning the design and development of Privacy Sentinel. It begins by situating the project within the Design Science Research paradigm before working through a comparative analysis of software development methodologies, a full justification for adopting Agile, the functional and non-functional requirements, and the system architecture. The chapter then presents five primary design artefacts Entity-Relationship Diagram, System Flowchart, Sequence Diagram, UI Interaction Flow, and six annotated wireframes all of which were produced during the design phase prior to implementation. 
+
+3.2 Research Paradigm: Design Science Research
+
+Privacy Sentinel is not a study that observes a phenomenon and draws inferences from it. It produces a working artefact a software tool as its primary research contribution. That distinction matters for how the research is framed, and it is why Design Science Research (DSR) is the appropriate paradigm here. Hevner, March, Park and Ram (2004) established DSR as a rigorous framework for information systems research in which the construction and evaluation of artefacts is itself the research act. 
+
+3.3 Methodology Comparison 
+
+Three principal approaches were considered: Waterfall, the Spiral and V-Model family, and Agile. Each is evaluated below against the specific conditions of this project before a justified selection is made.
+
+3.3.1 Waterfall
+
+Waterfall is the textbook sequential model: requirements are defined in full, then design proceeds, then implementation, then testing, then deployment, with each phase formally signed off before the next begins (Royce, 1970). The model works well when requirements are stable and comprehensively understood before a line of code is written. Large government contracts, safety-critical embedded systems, and infrastructure projects with contractually fixed specifications are the contexts where Waterfall genuinely earns its place.
+
+For Privacy Sentinel, Waterfall would have been actively counterproductive. The scoring methodology one of the most conceptually central components of the tool evolved considerably during the literature review phase and the early stages of data collection, as it became clear which criteria were actually resolvable from publicly available label information and which were not. 
+
+3.3.2 Spiral Model, V-Model, and Traditional SDLC
+
+The Spiral model, introduced by Boehm (1988), organises development around a series of iterative cycles, each of which includes risk analysis as a central activity. This makes it well-suited to projects where technical or requirements uncertainty is high and the costs of getting things wrong are significant large aerospace or medical device projects, for instance. In principle, the risk analysis element is relevant to Privacy Sentinel, where there were genuine uncertainties about what data could be reliably collected and how the comparison algorithm should handle partially complete label records. In practice, the Spiral model's risk management documentation infrastructure is entirely disproportionate for a project of this scale and timeframe. The overhead of formal risk registers, cost estimation models, and cycle-by-cycle sign-off would have consumed weeks that were better spent on building and testing the tool itself.
+
+The V-Model pairs each development phase with a corresponding test phase, improving traceability between specification and verification. This is a real advantage in contexts where there are strict regulatory requirements for demonstrating that the delivered system matches its specification medical devices, automotive safety systems. For Privacy Sentinel, the primary testing need was functional and exploratory: does the scoring algorithm produce meaningful, consistent results on a varied sample of apps? That kind of exploratory testing does not benefit from the formal phase-pairing that the V-Model provides. It benefits from iteration.
+
+3.3.3 Agile: Justification and Sprint Structure
+
+Agile development, formalised through the Agile Manifesto (Beck et al., 2001), prioritises working software over comprehensive documentation, responsiveness to change over adherence to a fixed plan, and continuous delivery of usable increments over a single final release. For Privacy Sentinel, this responsiveness was not just a convenience it was a necessity. The requirements legitimately changed as the project progressed, and a methodology that treated every course correction as a failure would have been actively harmful.
+
+Table 3.1: Comparative analysis of software development methodologies considered for Privacy Sentinel
+
+3.4 Functional and Non-Functional Requirements
+
+The requirements below were derived from the project objectives stated in Chapter 1 and the research framework established in Chapter 2. Separating functional requirements what the system must do from non-functional requirement show well it must do it follows established software engineering practice (Sommerville, 2016).
+
+3.4.1 Functional Requirements
+
+
+
+Table 3.2: Functional requirements for Privacy Sentinel
+
+
+
+3.4.2 Non-Functional Requirements
+
+
+
+Table 3.3: Non-functional requirements for Privacy Sentinel
+
+3.5 System Architecture
+
+Privacy Sentinel follows a three-tier architecture: a data tier implemented as a SQLite relational database; a logic tier comprising Python scripts responsible for data collection, comparison, and scoring; and a presentation tier built on Streamlit with Plotly Express visualisations. 
+
+3.6 Entity-Relationship Diagram
+
+The database schema for Privacy Sentinel comprises five primary entities, shown in Figure 3.1. Application is the central entity, representing a single mobile app identified by its name and developer. Each Application may have up to two associated Privacy Label records one per Platform. The Platform entity records whether the label comes from the Apple App Store or the Google Play Store, enabling the comparison engine to correctly associate the two labels for the same application and compute consistency scores.
+
+
+
+
+
+
+
+
+
+
+
+Figure 3.1: Entity-Relationship Diagram Privacy Sentinel database schema.
+
+3.7 System Flowchart
+
+Figure 3.2 documents the end-to-end processing pipeline for Privacy Sentinel, from the point at which a user opens the application through to the generation and optional export of a final analysis report. The flowchart uses standard notation throughout: rectangular boxes for processing steps, diamond shapes for decision points, and oval terminators for start and end nodes.
+
+
+
+
+
+
+
+Figure 3.2: System flowchart end-to-end Privacy Sentinel processing pipeline. 
+
+3.8 Sequence Diagram
+
+Figure 3.3 presents the sequence of interactions between the five principal actors in the Privacy Sentinel system: the User, the Streamlit Interface, the Data Manager module, the Scoring Engine module, and the SQLite Database. The diagram uses standard UML sequence notation, with solid arrows for requests and dashed arrows for returns, and vertical activation bars indicating the period during which each actor is actively processing.
+
+The sequence divides naturally into two phases. The data entry phase (messages 1 through 9) covers the journey from the user opening the application to a validated, saved privacy label record. 
+
+
+
+
+
+
+
+
+
+Figure 3.3: Sequence diagram numbered message flows across all five Privacy Sentinel system actors.
+
+3.9 UI Interaction Flow
+
+Figure 3.4 maps the navigation structure across the six primary screens of the Privacy Sentinel application. It shows the primary navigation paths the routes a user follows in the normal course of using the tool and the secondary or return paths, including the sidebar navigation that provides access to the Settings screen from any part of the application.
+
+
+
+
+
+
+
+Figure 3.4: UI interaction flow navigation map across all six Privacy Sentinel screens. .
+
+3.10 Wireframes
+
+The six wireframes presented in Figures 3.5a through 3.5f represent the primary screens of the Privacy Sentinel application as designed prior to implementation. They are produced in a low-fidelity, Balsamiq-inspired style, using a monochrome greyscale palette with a consistent colour coding convention throughout: black and very dark grey for navigation bars and primary action buttons, mid-grey for section headers, secondary navigation, and filter components, light grey for content area backgrounds and table rows, and white for input fields and active table rows. This colour coding convention serves a functional purpose it helps a reader distinguish interactive elements from informational ones briefly without introducing visual noise that would distract from the structural design decisions.
+
+Each wireframe is accompanied by a caption that identifies the key design decisions visible in it. Captions appear below each figure, not embedded within the wireframe itself, in accordance with standard academic figure presentation practice.
+
+3.10.1 Screen 1: Login
+
+The Login screen is intentionally minimal. It presents the application name and lock icon as a header, followed by email and password input fields, a remember-me checkbox, and a single primary action button. The "Forgot password?" link is present as a secondary action. The screen does not include any navigation elements the sidebar and top navigation bar are only visible after authentication. This is a deliberate security design decision: unauthenticated users should not be able to see the application's navigation structure.
+
+
+
+
+
+
+
+
+
+
+
+Figure 3.5a: Login screen 
+
+
+
+3.10.2 Screen 2: Analyst Dashboard
+
+The Dashboard is designed to give an analyst an immediate overview of the dataset without requiring them to navigate elsewhere first. Four KPI metric cards at the top of the screen surface the key headline figures: total apps analysed, average transparency score, number of high-risk apps, and number of apps with data for both platforms. Below the KPI strip sits a bar chart showing average scores broken down by application category (social media, health, finance). The lower section of the screen shows a recent submissions table with colour-coded risk badges, sortable by any column. Quick-access buttons for adding a new app and exporting data are placed in the navigation bar, making common actions reachable from the first screen the user sees.
+
+
+
+
+
+
+
+Figure 3.5b: Analyst Dashboard wireframe. KPI metric strip across top; bar chart placeholder below; alternating-row data table with risk badge column; Add App and Export actions in navigation bar.
+
+3.10.3 Screen 3: Sample Submission
+
+The Submission screen uses a two-column layout to present the iOS and Android label fields side-by-side. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 3.5c: Sample Submission screen.
+
+3.10.4 Screen 4: Analysis Results
+
+The Results screen places the transparency score prominently at the top, accompanied by the risk level badge and the three sub-score breakdowns. This hierarchy reflects the analyst's likely priority: the overall score and risk classification are the first things they need to see. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Figure 3.5d: Analysis Results screen wireframe. 
+
+3.10.5 Screen 5: Submission History
+
+The History screen provides a searchable, filterable table of all apps that have been entered into the system. The filter bar at the top supports four filter dimensions free-text search by app name, category dropdown, platform dropdown, and risk level dropdown with a separate Clear button to reset filters quickly. 
+
+
+
+
+
+
+
+
+
+Figure 3.5e: Submission History screen wireframe. 
+
+3.10.6 Screen 6: System Settings
+
+The Settings screen is organised into four clearly delineated sections: Scoring Thresholds, Display Options, Export Preferences, and User Profile. The Scoring Thresholds section is the most analytically significant: the High Risk and Medium Risk score boundaries are configurable here, allowing a researcher to adjust the flagging sensitivity depending on the sample being analysed. 
+
+
+
+
+
+
+
+
+
+Figure 3.5f: System Settings screen wireframe. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Chapter 4: Implementation
+
+
+
+4.1 Introduction
+
+This chapter documents the implementation of Privacy Sentinel. Three core code samples are presented database initialisation, the cross-platform comparison algorithm, and the transparency scoring engine each accompanied by a brief explanation of the key design decisions. All code was written in Python 3.11. The primary libraries used were SQLite3 for data storage, Pandas for data handling, Plotly Express for visualisations, and Streamlit for the web interface. 
+
+
+
+4.2 Code Sample 1: Database Initialisation
+
+The database_setup module creates the five-table SQLite schema defined in the ERD in Chapter 3. All table creation logic is centralised in a single function so the schema can be reproduced from scratch in one call useful during sprint testing when the schema needed adjustment. Foreign key enforcement is enabled explicitly, as SQLite disables it by default.
+
+
+
+Code Sample 4.1 database_setup.py
+
+
+
+
+
+
+
+Figure 4.1: database_setup.py 
+
+
+
+4.3 Code Sample 2: Cross-Platform Comparison Algorithm
+
+The comparator module retrieves both platform labels for a given application and compares them field by field. For the data categories field, a set-based comparison is used rather than a string equality check, because apps do not always list categories in the same order on both platforms. The function returns a structured result consumed by both the scoring engine and the Streamlit results screen.
+
+
+
+Code Sample 4.2 — comparator.py
+
+
+
+
+
+Figure 4.2: comparator.py 
+
+
+
+4.4 Code Sample 3: Transparency Scoring Engine
+
+The scoring engine calculates the three sub-scores completeness, specificity, and consistency and derives the total transparency score and risk flag. The specificity sub-score penalises vague, catch-all terms such as "data" or "information", a design decision grounded in the findings of Scoccia et al. (2022) and Ali et al. (2023), who documented labels that used non-specific language to achieve technical compliance without conveying meaningful information.
+
+
+
+Code Sample 4.3 scoring_engine.py
+
+
+
+
+
+
+
+
+
+Figure 4.3: scoring_engine..py
+
+4.5 Testing
+
+Functional and unit testing were conducted at the end of Sprint 5. Functional testing verified user-facing behaviour against the acceptance criteria derived from the functional requirements. Unit tests were written using pytest and executed against the three core modules above.
+
+4.5.1 Functional Test Cases
+
+
+
+Table 4.1: Functional test cases for Privacy Sentinel
+
+
+
+
+
+
+
+
+
+References
+
+
+
+Ali, M.M., Balash, D.G., Kodwani, M., Wu, X., Kanich, C. and Aviv, A.J. (2023) Honesty is the Best Policy: On the Accuracy of Apple Privacy Labels Compared to Apps' Privacy Policies. arXiv preprint arXiv:2306.17063.
+
+Baalous, R. and Althobaiti, A. (2025) 'Detecting the Inconsistency between Android Apps' Data Collection and Google Play's Data Safety Using Static Analysis', Cybernetics and Information Technologies, 25(1). Available via ACM Digital Library.
+
+Beck, K., Beedle, M., van Bennekum, A., Cockburn, A., Cunningham, W., Fowler, M., Grenning, J., Highsmith, J., Hunt, A., Jeffries, R., Kern, J., Marick, B., Martin, R.C., Mellor, S., Schwaber, K., Sutherland, J. and Thomas, D. (2001) Manifesto for Agile Software Development. Available at: https://agilemanifesto.org
+
+Boehm, B.W. (1988) 'A spiral model of software development and enhancement', Computer, 21(5), pp. 61–72. https://doi.org/10.1109/2.59
+
+Cranor, L.F. (2022) 'Mobile-app privacy nutrition labels missing key ingredients for success', Communications of the ACM, 65(11), pp. 26–28.
+
+Gardner, J., Feng, Y., Reiman, K., Lin, Z., Jain, A. and Sadeh, N. (2022) 'Helping Mobile Application Developers Create Accurate Privacy Labels', in 2022 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW). IEEE, pp. 212–230.
+
+Guaman, D., Noguera, J. and Enriquez, J.G. (2023) 'Automated GDPR Compliance Assessment for Cross-Border Personal Data Transfers in Android Applications', Computers & Security, 132, article 103372. https://doi.org/10.1016/j.cose.2023.103372
+
+Hevner, A.R., March, S.T., Park, J. and Ram, S. (2004) 'Design Science in Information Systems Research', MIS Quarterly, 28(1), pp. 75–105. https://doi.org/10.2307/25148625
+
+Inayoshi, H., Kakei, S. and Saito, S. (2024) 'Detection of Inconsistencies between Guidance Pages and Actual Data Collection of Third-party SDKs in Android Apps', in Proceedings of the IEEE/ACM 11th International Conference on Mobile Software Engineering and Systems (MOBILESoft 2024). ACM, pp. 43–53.
+
+Jensen, C. and Potts, C. (2004) 'Privacy policies as decision-making tools: an evaluation of online privacy notices', in Proceedings of the 2004 Conference on Human Factors in Computing Systems (CHI 2004). ACM Press. https://doi.org/10.1145/985692.985752
+
+Kelley, P.G., Bresee, J., Cranor, L.F. and Reeder, R.W. (2009) 'A "Nutrition Label" for Privacy', in Proceedings of the 5th Symposium on Usable Privacy and Security (SOUPS 2009). ACM. https://doi.org/10.1145/1572532.1572538
+
+Kelley, P.G., Cesca, L., Bresee, J. and Cranor, L.F. (2010) 'Standardizing Privacy Notices: An Online Study of the Nutrition Label Approach', in Proceedings of the SIGCHI Conference on Human Factors in Computing Systems (CHI 2010). ACM. https://doi.org/10.1145/1753326.1753561
+
+Khandelwal, R., Nayak, A., Chung, P. and Fawaz, K. (2023a) 'Unpacking Privacy Labels: A Measurement and Developer Perspective on Google's Data Safety Section'. arXiv preprint arXiv:2306.08111.
+
+Khandelwal, R., Nayak, A., Chung, P. and Fawaz, K. (2023b) 'Comparing Privacy Labels of Applications in Android and iOS', in Proceedings of the 22nd Workshop on Privacy in the Electronic Society (WPES 2023). ACM, pp. 61–73. https://doi.org/10.1145/3603216.3624967
+
+Khedkar, M., Mondal, A.K. and Bodden, E. (2024) 'Do Android App Developers Accurately Report Collection of Privacy-Related Data?', in Proceedings of the 39th IEEE/ACM International Conference on Automated Software Engineering Workshops (ASEW 2024). ACM, pp. 176–186.
+
+Koch, S., Wessels, M., Altpeter, B., Olvermann, M. and Johns, M. (2022) 'Keeping Privacy Labels Honest', Proceedings on Privacy Enhancing Technologies, 2022(4), pp. 486–506.
+
+Kollnig, K., Shuba, A., Van Kleek, M., Binns, R. and Shadbolt, N. (2022) 'Goodbye Tracking? Impact of iOS App Tracking Transparency and Privacy Labels', in Proceedings of the 2022 ACM Conference on Fairness, Accountability, and Transparency (FAccT 2022). ACM, pp. 508–520.
+
+Li, T., Reiman, K., Agarwal, Y., Cranor, L.F. and Hong, J.I. (2022b) 'Understanding Challenges for Developers to Create Accurate Privacy Nutrition Labels', in Proceedings of the 2022 CHI Conference on Human Factors in Computing Systems. ACM. https://doi.org/10.1145/3491101.3519739
+
+Li, Y., Chen, D., Li, T., Agarwal, Y., Cranor, L.F. and Hong, J.I. (2022a) 'Understanding iOS Privacy Nutrition Labels: An Exploratory Large-Scale Analysis of App Store Data', in CHI Conference on Human Factors in Computing Systems Extended Abstracts (CHI EA 2022). ACM.
+
+McDonald, A.M. and Cranor, L.F. (2008) 'The Cost of Reading Privacy Policies', Telecommunications Policy Research Conference. Available at: https://cups.cs.cmu.edu
+
+Peffers, K., Tuunanen, T., Rothenberger, M.A. and Chatterjee, S. (2007) 'A Design Science Research Methodology for Information Systems Research', Journal of Management Information Systems, 24(3), pp. 45–77. https://doi.org/10.2753/MIS0742-1222240302
+
+Rodriguez, D., Jain, A., Alamo, J. and Sadeh, N. (2023) 'Comparing Privacy Label Disclosures of Apps Published in Both the App Store and Google Play Stores', in 2023 IEEE European Symposium on Security and Privacy Workshops (EuroS&PW). IEEE, pp. 150–157. https://doi.org/10.1109/EuroSPW59978.2023.00022
+
+Royce, W.W. (1970) 'Managing the development of large software systems', in Proceedings of IEEE WESCON, 26(8), pp. 1–9.
+
+Scoccia, G.L., Autili, M., Stilo, G. and Inverardi, P. (2022) 'An Empirical Study of Privacy Labels on the Apple iOS Mobile App Store', in Proceedings of the 9th IEEE/ACM International Conference on Mobile Software Engineering and Systems (MOBILESoft 2022). ACM, pp. 114–124. https://doi.org/10.1145/3524613.3527813
+
+ScienceDirect (2025) 'An Analysis of Privacy Regulations and User Concerns of Finance Mobile Applications', Computer Standards & Interfaces, Elsevier. https://doi.org/10.1016/j.csi.2025.103950
+
+Sommerville, I. (2016) Software Engineering. 10th edn. Pearson Education.
+
+Statista (2024) Mobile apps: statistics and facts. Available at: https://www.statista.com (Accessed: March 2025).
+
+Zhang, S., Feng, Y., Yao, Y., Cranor, L.F. and Sadeh, N. (2022) 'How Usable Are iOS App Privacy Labels?', in Extended Abstracts of the 2022 CHI Conference on Human Factors in Computing Systems. ACM.
+
+ACM SIGSAC (2024) 'Privacy Notices and Runtime Behaviour in Mobile Applications: A Compliance Analysis under GDPR Article 13', in Proceedings of the ACM Conference on Computer and Communications Security. ACM.
