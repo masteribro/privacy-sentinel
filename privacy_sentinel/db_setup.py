@@ -2,6 +2,10 @@ import sqlite3
 from pathlib import Path
 
 
+DEFAULT_EMAIL = "admin@sentinel.com"
+DEFAULT_PASSWORD = "sentinel123"
+
+
 def init_db(db_path: str = "data/privacy_sentinel.db") -> str:
     path = Path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -49,10 +53,31 @@ def init_db(db_path: str = "data/privacy_sentinel.db") -> str:
         );
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
     _migrate(cur)
+    _seed_default_user(cur)
     conn.commit()
     conn.close()
     return str(path)
+
+
+def _seed_default_user(cur):
+    cur.execute("SELECT COUNT(*) FROM users")
+    if cur.fetchone()[0] == 0:
+        from privacy_sentinel.auth import hash_password
+        cur.execute(
+            "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+            (DEFAULT_EMAIL, hash_password(DEFAULT_PASSWORD)),
+        )
 
 
 def _migrate(cur):
@@ -63,6 +88,7 @@ def _migrate(cur):
     _add_col(cur, "labels", "data_deletion_option", "TEXT")
     _add_col(cur, "scores", "risk_flag", "TEXT")
     _add_col(cur, "scores", "created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    _add_col(cur, "users", "name", "TEXT")
 
 
 def _add_col(cur, table, column, col_type):

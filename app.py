@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 import pandas as pd
 
 from privacy_sentinel import db_setup
+from privacy_sentinel.auth import authenticate, create_user, email_exists
 from privacy_sentinel.comparator import compare_labels
 from privacy_sentinel.scoring import calculate_scores
 from privacy_sentinel import data_manager as dm
@@ -12,9 +13,10 @@ from privacy_sentinel import data_manager as dm
 DB_PATH = "data/privacy_sentinel.db"
 CATEGORIES = ["Social media", "Health", "Finance", "Other"]
 
+db_setup.init_db(DB_PATH)
+
 
 def get_conn():
-    db_setup.init_db(DB_PATH)
     return sqlite3.connect(DB_PATH)
 
 
@@ -23,6 +25,9 @@ def risk_badge(flag):
 
 
 for key, default in [
+    ("authenticated", False),
+    ("current_user", None),
+    ("show_register", False),
     ("page", "Dashboard"),
     ("last_result", None),
     ("high_threshold", 0.5),
@@ -32,12 +37,123 @@ for key, default in [
         st.session_state[key] = default
 
 
+# ── Login / Register gate ─────────────────────────────────────────────────────
+if not st.session_state.authenticated:
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] {display: none;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    col_l, col_c, col_r = st.columns([1, 2, 1])
+    with col_c:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown(
+            "<h1 style='text-align:center; font-size:2.2rem;'>🔒 Privacy Sentinel</h1>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            "<p style='text-align:center; color:#888; margin-bottom:1.5rem;'>"
+            "Cross-platform privacy label analysis</p>",
+            unsafe_allow_html=True,
+        )
+
+        if not st.session_state.show_register:
+            # ── Login form ──────────────────────────────────────────────────
+            with st.form("login_form"):
+                email = st.text_input("Email", placeholder="Enter your email")
+                password = st.text_input("Password", type="password", placeholder="Enter your password")
+                remember = st.checkbox("Remember me")
+                login_btn = st.form_submit_button("Login", use_container_width=True, type="primary")
+
+            st.markdown(
+                "<p style='text-align:center; margin-top:0.4rem;'>"
+                "<small style='color:#888;'>Forgot password? Contact your administrator.</small></p>",
+                unsafe_allow_html=True,
+            )
+            st.markdown("<div style='text-align:center; margin-top:1rem;'>", unsafe_allow_html=True)
+            if st.button("Don't have an account? Create one", use_container_width=True):
+                st.session_state.show_register = True
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            if login_btn:
+                if not email.strip() or not password:
+                    st.error("Please enter your email and password.")
+                else:
+                    conn = get_conn()
+                    user = authenticate(conn, email, password)
+                    conn.close()
+                    if user:
+                        st.session_state.authenticated = True
+                        st.session_state.current_user = {"id": user[0], "name": user[1], "email": user[2]}
+                        st.rerun()
+                    else:
+                        st.error("Incorrect email or password.")
+
+        else:
+            # ── Register form ───────────────────────────────────────────────
+            st.markdown("#### Create your account")
+            with st.form("register_form"):
+                reg_name = st.text_input("Full name", placeholder="e.g. Jane Smith")
+                reg_email = st.text_input("Email", placeholder="e.g. jane@example.com")
+                reg_pass = st.text_input("Password", type="password", placeholder="Choose a password")
+                reg_pass2 = st.text_input("Confirm password", type="password", placeholder="Repeat your password")
+                reg_btn = st.form_submit_button("Create Account", use_container_width=True, type="primary")
+
+            if st.button("Already have an account? Log in", use_container_width=True):
+                st.session_state.show_register = False
+                st.rerun()
+
+            if reg_btn:
+                errors = []
+                if not reg_name.strip():
+                    errors.append("Full name is required.")
+                if not reg_email.strip():
+                    errors.append("Email is required.")
+                if len(reg_pass) < 6:
+                    errors.append("Password must be at least 6 characters.")
+                if reg_pass != reg_pass2:
+                    errors.append("Passwords do not match.")
+
+                if errors:
+                    for e in errors:
+                        st.error(e)
+                else:
+                    conn = get_conn()
+                    ok = create_user(conn, reg_name.strip(), reg_email.strip(), reg_pass)
+                    conn.close()
+                    if ok:
+                        st.success("Account created! You can now log in.")
+                        st.session_state.show_register = False
+                        st.rerun()
+                    else:
+                        st.error("That email address is already registered.")
+
+    st.stop()
+
+
+# ── Authenticated app ─────────────────────────────────────────────────────────
 st.sidebar.title("🔒 Privacy Sentinel")
+user_info = st.session_state.current_user
+if user_info:
+    st.sidebar.caption(f"Logged in as **{user_info['name']}**")
 st.sidebar.markdown("---")
 for label in ["Dashboard", "Submit", "History", "Settings"]:
     if st.sidebar.button(label, use_container_width=True):
         st.session_state.page = label
         st.rerun()
+
+st.sidebar.markdown("---")
+if st.sidebar.button("Logout", use_container_width=True):
+    st.session_state.authenticated = False
+    st.session_state.current_user = None
+    st.session_state.show_register = False
+    st.session_state.page = "Dashboard"
+    st.rerun()
 
 page = st.session_state.page
 
