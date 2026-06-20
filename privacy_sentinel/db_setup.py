@@ -71,6 +71,8 @@ def init_db(db_path: str = "data/privacy_sentinel.db") -> str:
 
 
 def _seed_default_user(cur):
+    # only inserts the default account on a brand-new database, so a fresh clone is usable
+    # immediately — once real accounts exist this never touches the users table again
     cur.execute("SELECT COUNT(*) FROM users")
     if cur.fetchone()[0] == 0:
         from privacy_sentinel.auth import hash_password
@@ -81,6 +83,8 @@ def _seed_default_user(cur):
 
 
 def _migrate(cur):
+    # lets an older database (e.g. from before the users table existed) catch up to the
+    # current schema without wiping anything — each column only gets added if it's missing
     _add_col(cur, "applications", "category", "TEXT")
     _add_col(cur, "applications", "created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     _add_col(cur, "labels", "tracking_disclosed", "TEXT")

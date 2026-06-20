@@ -1,5 +1,7 @@
 from typing import Dict
 
+# words that technically answer the question but say nothing useful —
+# a label listing only these gets penalised even though the field isn't blank
 GENERIC_TERMS = {"data", "information", "personal data", "info", "other"}
 
 
@@ -22,6 +24,8 @@ def specificity_score(label: Dict) -> float:
 
 
 def consistency_score(comp_report: Dict) -> float:
+    # consistency is already calculated in comparator.py — just reading it through here
+    # keeps the two modules independent, scoring doesn't need to know how it was derived
     return float(comp_report.get("overall_consistency", 0.0))
 
 
@@ -39,6 +43,8 @@ def calculate_scores(label_a: Dict, label_b: Dict, comp_report: Dict,
     specificity = (specificity_score(label_a) + specificity_score(label_b)) / 2.0
     consistency = consistency_score(comp_report)
 
+    # completeness is weighted highest (40 vs 30/30) — a blank field is treated as
+    # a more basic failure than being vague or inconsistent across platforms
     overall = (0.4 * completeness) + (0.3 * specificity) + (0.3 * consistency)
     flag = risk_flag(overall, high_threshold, medium_threshold)
 

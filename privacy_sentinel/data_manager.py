@@ -1,7 +1,11 @@
 import json
 from typing import Optional
 
+# every query here uses ? placeholders instead of f-strings — values are passed
+# separately so user input can never get interpreted as part of the SQL itself
 
+
+# saves a new app's basic details and hands back its new row ID
 def insert_application(conn, name: str, developer: Optional[str] = None, category: Optional[str] = None) -> int:
     cur = conn.cursor()
     cur.execute(
@@ -12,6 +16,7 @@ def insert_application(conn, name: str, developer: Optional[str] = None, categor
     return cur.lastrowid
 
 
+# saves one platform's label answers (iOS or Android) for a given app
 def insert_label(conn, app_id: int, platform: str,
                  data_categories: Optional[str] = None,
                  data_types: Optional[str] = None,
@@ -31,6 +36,7 @@ def insert_label(conn, app_id: int, platform: str,
     return cur.lastrowid
 
 
+# saves the calculated scores (from scoring.py) against an app
 def insert_scores(conn, app_id: int, scores: dict) -> int:
     cur = conn.cursor()
     cur.execute(
@@ -43,6 +49,7 @@ def insert_scores(conn, app_id: int, scores: dict) -> int:
     return cur.lastrowid
 
 
+# fetches both saved labels (iOS and Android) for one app, keyed by platform name
 def get_labels_for_app(conn, app_id: int) -> dict:
     cur = conn.cursor()
     cur.execute(
@@ -63,6 +70,7 @@ def get_labels_for_app(conn, app_id: int) -> dict:
     return result
 
 
+# fetches every app along with its latest score — powers the Dashboard and History pages
 def get_all_apps(conn) -> list:
     cur = conn.cursor()
     cur.execute("""
@@ -86,7 +94,10 @@ def get_all_apps(conn) -> list:
     return apps
 
 
+# removes an app completely
 def delete_app(conn, app_id: int):
+    # only deletes from applications — the matching rows in labels and scores
+    # disappear automatically through the ON DELETE CASCADE set up in db_setup.py
     cur = conn.cursor()
     cur.execute("DELETE FROM applications WHERE id = ?", (app_id,))
     conn.commit()

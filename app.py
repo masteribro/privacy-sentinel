@@ -13,10 +13,12 @@ from privacy_sentinel import data_manager as dm
 DB_PATH = "data/privacy_sentinel.db"
 CATEGORIES = ["Social media", "Health", "Finance", "Other"]
 
+# runs once when the script starts — builds data/ and the tables if they're not there yet
 db_setup.init_db(DB_PATH)
 
 
 def get_conn():
+    # short-lived connection, opened and closed per page action instead of kept open
     return sqlite3.connect(DB_PATH)
 
 
@@ -37,7 +39,8 @@ for key, default in [
         st.session_state[key] = default
 
 
-# ── Login / Register gate ─────────────────────────────────────────────────────
+# nobody sees the sidebar or any page below this until they log in —
+# st.stop() at the bottom of this block kills the script here, so nothing after it runs
 if not st.session_state.authenticated:
     st.markdown(
         """
@@ -62,7 +65,7 @@ if not st.session_state.authenticated:
         )
 
         if not st.session_state.show_register:
-            # ── Login form ──────────────────────────────────────────────────
+            # login form
             with st.form("login_form"):
                 email = st.text_input("Email", placeholder="Enter your email")
                 password = st.text_input("Password", type="password", placeholder="Enter your password")
@@ -95,7 +98,7 @@ if not st.session_state.authenticated:
                         st.error("Incorrect email or password.")
 
         else:
-            # ── Register form ───────────────────────────────────────────────
+            # register form
             st.markdown("#### Create your account")
             with st.form("register_form"):
                 reg_name = st.text_input("Full name", placeholder="e.g. Jane Smith")
@@ -136,7 +139,7 @@ if not st.session_state.authenticated:
     st.stop()
 
 
-# ── Authenticated app ─────────────────────────────────────────────────────────
+# everything below here only runs once logged in
 st.sidebar.title("🔒 Privacy Sentinel")
 user_info = st.session_state.current_user
 if user_info:
@@ -283,6 +286,7 @@ elif page == "Submit":
                 "data_deletion_option": and_deletion,
             }
 
+            # this is the actual analysis step — everything else on this page is just the form
             comp = compare_labels(label_ios, label_android)
             scores = calculate_scores(
                 label_ios, label_android, comp,

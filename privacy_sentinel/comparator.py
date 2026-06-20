@@ -2,6 +2,8 @@ from typing import Dict, Any
 
 
 def normalize_list_field(value: Any):
+    # turns "Location, Contacts , email" into {"location", "contacts", "email"}
+    # so casing/spacing differences between iOS and Android entries don't count as mismatches
     if value is None:
         return set()
     if isinstance(value, str):
@@ -27,10 +29,14 @@ def compare_labels(label_a: Dict, label_b: Dict) -> Dict:
     cat_union = a_cats | b_cats
     type_union = a_types | b_types
 
+    # Jaccard similarity: what they agree on, divided by everything either one mentioned.
+    # 1.0 = identical lists, 0.0 = no overlap at all. Falls back to 1.0 if both sides are
+    # empty — nothing was declared, so there's nothing to disagree about either.
     cat_consistency = (len(a_cats & b_cats) / len(cat_union)) if cat_union else 1.0
     type_consistency = (len(a_types & b_types) / len(type_union)) if type_union else 1.0
 
-    # Compare boolean disclosure fields
+    # the Yes/No fields can't use Jaccard — just check if both platforms gave the same answer
+
     bool_fields = ["tracking_disclosed", "shares_data", "data_deletion_option"]
     bool_results = {}
     match_count = 0

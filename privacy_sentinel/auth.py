@@ -3,12 +3,16 @@ import os
 
 
 def hash_password(password: str) -> str:
+    # salt is random per password so two users with the same password don't end up
+    # with the same stored value. salt gets saved alongside the hash, no need to hide it.
     salt = os.urandom(16).hex()
     hashed = hashlib.sha256((salt + password).encode()).hexdigest()
     return f"{salt}:{hashed}"
 
 
 def verify_password(password: str, stored: str) -> bool:
+    # there's no way to "decrypt" a hash back to the password — we just redo the same
+    # scrambling on whatever was typed and check if it lands on the same result
     try:
         salt, hashed = stored.split(":", 1)
         return hashlib.sha256((salt + password).encode()).hexdigest() == hashed
