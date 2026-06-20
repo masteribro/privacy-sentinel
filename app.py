@@ -20,6 +20,13 @@ CATEGORIES = ["Social media", "Health", "Finance", "Other"]  # options shown in 
 # runs once when the script starts — builds data/ and the tables if they're not there yet
 db_setup.init_db(DB_PATH)
 
+# streamlit shows a small "Press Enter to submit form" hint under text fields inside
+# a form — this hides that hint everywhere in the app, it's just visual noise here
+st.markdown(
+    "<style>[data-testid='InputInstructions'] {visibility: hidden;}</style>",
+    unsafe_allow_html=True,
+)
+
 
 def get_conn():
     # short-lived connection, opened and closed per page action instead of kept open
