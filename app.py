@@ -1,9 +1,13 @@
+# sqlite3 talks to the database file directly, streamlit draws the actual website,
+# plotly (express + graph_objects) draws the charts, pandas just shapes data for the charts
 import sqlite3
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 
+# these four imports are our own code, from the privacy_sentinel/ folder —
+# this file never does any scoring or database work itself, it just calls out to them
 from privacy_sentinel import db_setup
 from privacy_sentinel.auth import authenticate, create_user, email_exists
 from privacy_sentinel.comparator import compare_labels
@@ -11,7 +15,7 @@ from privacy_sentinel.scoring import calculate_scores
 from privacy_sentinel import data_manager as dm
 
 DB_PATH = "data/privacy_sentinel.db"
-CATEGORIES = ["Social media", "Health", "Finance", "Other"]
+CATEGORIES = ["Social media", "Health", "Finance", "Other"]  # options shown in the dropdown on Submit
 
 # runs once when the script starts — builds data/ and the tables if they're not there yet
 db_setup.init_db(DB_PATH)
@@ -23,9 +27,15 @@ def get_conn():
 
 
 def risk_badge(flag):
+    # turns the plain text "High"/"Medium"/"Low" into the coloured badge shown on screen
     return {"High": "🔴 High", "Medium": "🟡 Medium", "Low": "🟢 Low"}.get(flag or "", "— —")
 
 
+# st.session_state is streamlit's way of remembering things between clicks.
+# normally a streamlit script re-runs top to bottom every single time you click
+# anything, so without this, things like "am I logged in" would reset on every click.
+# this loop just sets each value to its default the very first time the app loads —
+# after that, "if key not in st.session_state" is False, so it leaves the value alone.
 for key, default in [
     ("authenticated", False),
     ("current_user", None),
@@ -51,6 +61,10 @@ if not st.session_state.authenticated:
         unsafe_allow_html=True,
     )
 
+    # st.columns([1, 2, 1]) splits the page into 3 invisible side-by-side sections.
+    # the numbers are relative widths — the middle one is twice as wide as each side
+    # column. We only ever put content in the middle one, so the login box sits
+    # centred on the page instead of stretching edge to edge.
     col_l, col_c, col_r = st.columns([1, 2, 1])
     with col_c:
         st.markdown("<br><br>", unsafe_allow_html=True)
@@ -65,11 +79,14 @@ if not st.session_state.authenticated:
         )
 
         if not st.session_state.show_register:
-            # login form
+            # login form.
+            # st.form groups widgets together so nothing happens until the submit
+            # button inside it is clicked — without a form, every single keystroke
+            # in the text boxes would reload the whole page.
             with st.form("login_form"):
                 email = st.text_input("Email", placeholder="Enter your email")
                 password = st.text_input("Password", type="password", placeholder="Enter your password")
-                remember = st.checkbox("Remember me")
+                remember = st.checkbox("Remember me")  # cosmetic only, not wired to anything yet
                 login_btn = st.form_submit_button("Login", use_container_width=True, type="primary")
 
             st.markdown(
@@ -83,14 +100,19 @@ if not st.session_state.authenticated:
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
+            # login_btn is only True on the exact run where the button was just clicked
             if login_btn:
                 if not email.strip() or not password:
                     st.error("Please enter your email and password.")
                 else:
                     conn = get_conn()
-                    user = authenticate(conn, email, password)
+                    user = authenticate(conn, email, password)  # checks the database, see auth.py
                     conn.close()
                     if user:
+                        # flip the session flag and store who's logged in,
+                        # then st.rerun() restarts the script from the top —
+                        # this time st.session_state.authenticated is True, so the
+                        # login block above is skipped and the real app shows instead
                         st.session_state.authenticated = True
                         st.session_state.current_user = {"id": user[0], "name": user[1], "email": user[2]}
                         st.rerun()
@@ -112,6 +134,8 @@ if not st.session_state.authenticated:
                 st.rerun()
 
             if reg_btn:
+                # collect every problem instead of stopping at the first one,
+                # so the user sees all the things to fix in one go, not one at a time
                 errors = []
                 if not reg_name.strip():
                     errors.append("Full name is required.")
@@ -145,6 +169,11 @@ user_info = st.session_state.current_user
 if user_info:
     st.sidebar.caption(f"Logged in as **{user_info['name']}**")
 st.sidebar.markdown("---")
+
+# one button per page name. clicking a button updates which "page" we're on,
+# then reruns the script — the big if/elif chain further down reads that page
+# name and decides what to draw. this is how navigation works without
+# streamlit's separate multi-page file structure.
 for label in ["Dashboard", "Submit", "History", "Settings"]:
     if st.sidebar.button(label, use_container_width=True):
         st.session_state.page = label
@@ -165,14 +194,16 @@ if page == "Dashboard":
     st.title("Analyst Dashboard")
 
     conn = get_conn()
-    apps = dm.get_all_apps(conn)
+    apps = dm.get_all_apps(conn)  # every app ever submitted, with its latest score attached
     conn.close()
 
+    # not every app necessarily has a score yet, so filter those out before averaging —
+    # otherwise None values would crash the sum()/len() math below
     scored = [a for a in apps if a["overall"] is not None]
     avg_score = sum(a["overall"] for a in scored) / len(scored) if scored else 0
     high_risk = sum(1 for a in scored if a["risk_flag"] == "High")
 
-    # KPI cards
+    # 4 stat boxes across the top of the page — st.columns(4) just makes 4 equal slots
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total Apps", len(apps))
     c2.metric("Avg Transparency Score", f"{avg_score:.0%}")
@@ -181,7 +212,9 @@ if page == "Dashboard":
 
     st.markdown("---")
 
-    # Bar chart — avg score by category
+    # Bar chart — average score per category.
+    # pandas groupby is doing the heavy lifting here: it buckets every scored app by
+    # its category (Social media, Health, etc.) then averages the score within each bucket.
     if scored:
         df = pd.DataFrame(scored)
         df["score_pct"] = df["overall"] * 100
@@ -228,6 +261,8 @@ if page == "Dashboard":
 elif page == "Submit":
     st.title("New App Submission")
 
+    # the whole form (app details + both label columns) lives inside one st.form,
+    # so nothing gets submitted or analysed until "Submit and Analyse" is clicked
     with st.form("submit_form"):
         st.subheader("App Details")
         d1, d2, d3 = st.columns(3)
@@ -237,8 +272,13 @@ elif page == "Submit":
 
         st.divider()
 
+        # two equal columns side by side — iOS answers go on the left,
+        # Android answers go on the right, for the exact same app
         ios_col, android_col = st.columns(2)
 
+        # note the key="..." on every widget below — iOS and Android use the exact same
+        # question text, so streamlit needs a unique key per widget to tell them apart.
+        # without it, streamlit would complain about duplicate widgets.
         with ios_col:
             st.markdown("**iOS — App Store label**")
             ios_cats = st.text_input("Data categories (comma separated)", key="ios_cats",
@@ -271,6 +311,8 @@ elif page == "Submit":
         if not app_name.strip():
             st.error("App name is required.")
         else:
+            # bundle each side's answers into a plain dictionary — this is the exact
+            # shape that compare_labels() and calculate_scores() expect to receive
             label_ios = {
                 "data_categories": ios_cats,
                 "data_types": ios_types,
@@ -294,6 +336,7 @@ elif page == "Submit":
                 medium_threshold=st.session_state.medium_threshold,
             )
 
+            # save everything to the database — the app itself, both labels, and the score
             conn = get_conn()
             app_id = dm.insert_application(conn, app_name.strip(), developer.strip() or None, category)
             dm.insert_label(conn, app_id, "iOS", ios_cats, ios_types, ios_tracking, ios_shares, ios_deletion)
@@ -301,6 +344,8 @@ elif page == "Submit":
             dm.insert_scores(conn, app_id, scores)
             conn.close()
 
+            # also stash the result in session_state so the Results page (which loads
+            # next) has something to display straight away, without re-reading the database
             st.session_state.last_result = {
                 "app_name": app_name.strip(),
                 "category": category,
@@ -338,7 +383,9 @@ elif page == "Results":
         chart_col, bar_col = st.columns(2)
 
         with chart_col:
-            # Radar chart — score breakdown
+            # Radar chart — draws the 3 sub-scores as a triangle. A Scatterpolar chart
+            # needs the first point repeated at the end to close the shape into a loop,
+            # which is why vals[0] and cats_r[0] get appended again.
             cats_r = ["Completeness", "Specificity", "Consistency"]
             vals = [scores["completeness"], scores["specificity"], scores["consistency"]]
             fig = go.Figure(go.Scatterpolar(
@@ -355,7 +402,9 @@ elif page == "Results":
             st.plotly_chart(fig, use_container_width=True)
 
         with bar_col:
-            # Bar chart — iOS vs Android data types
+            # Bar chart — every data type either platform mentioned, side by side.
+            # all_types is the full list (so both bars line up against the same x-axis),
+            # then we check per type whether iOS had it (1) and whether Android had it (1 or 0)
             ios_set = {t.strip().lower() for t in (r["label_ios"].get("data_types") or "").split(",") if t.strip()}
             and_set = {t.strip().lower() for t in (r["label_android"].get("data_types") or "").split(",") if t.strip()}
             all_types = sorted(ios_set | and_set)
@@ -370,18 +419,22 @@ elif page == "Results":
                               height=320)
                 st.plotly_chart(fig2, use_container_width=True)
 
-        # Discrepancies
+        # Discrepancies — this is just turning the comparator's output into readable text.
+        # "match" can be True (both said the same), False (they disagreed), or None
+        # (one or both left it blank, so there's nothing to compare).
         st.subheader("Discrepancies Identified")
         bool_fields = comp.get("boolean_fields", {})
         any_issue = False
         for field, info in bool_fields.items():
-            label_name = field.replace("_", " ").title()
+            label_name = field.replace("_", " ").title()  # "shares_data" -> "Shares Data"
             if info["match"] is False:
                 st.error(f"✗ {label_name}: iOS = **{info['a']}** | Android = **{info['b']}**")
                 any_issue = True
             elif info["match"] is True:
                 st.success(f"✓ {label_name}: Both platforms = **{info['a']}**")
 
+        # set subtraction (-) gives us "things in one set but not the other" —
+        # exactly what we need to spot categories one platform mentioned and the other didn't
         only_ios = set(comp["categories"]["a"]) - set(comp["categories"]["b"])
         only_and = set(comp["categories"]["b"]) - set(comp["categories"]["a"])
         if only_ios:
@@ -424,7 +477,9 @@ elif page == "History":
     apps = dm.get_all_apps(conn)
     conn.close()
 
-    # Filters
+    # Filters — three independent dropdowns/search box, each one narrows the list further.
+    # "filtered" starts as every app, then each active filter shrinks the list a bit more —
+    # this means search + category + risk level all combine instead of replacing each other
     f1, f2, f3 = st.columns([3, 2, 2])
     search = f1.text_input("Search app name", placeholder="Search...")
     cat_filter = f2.selectbox("Category", ["All"] + CATEGORIES)
@@ -478,6 +533,8 @@ elif page == "Settings":
     st.markdown("---")
     b1, b2 = st.columns(2)
     if b1.button("Save settings", type="primary"):
+        # High has to stay below Medium, otherwise the risk_flag() logic in scoring.py
+        # (which checks High first, then Medium) would never be able to return "High" at all
         if high >= medium:
             st.error("High risk threshold must be lower than medium risk threshold.")
         else:

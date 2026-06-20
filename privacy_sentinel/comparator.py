@@ -39,21 +39,26 @@ def compare_labels(label_a: Dict, label_b: Dict) -> Dict:
 
     bool_fields = ["tracking_disclosed", "shares_data", "data_deletion_option"]
     bool_results = {}
-    match_count = 0
-    present_count = 0
+    match_count = 0    # how many of the 3 questions both platforms actually answered the same way
+    present_count = 0  # how many of the 3 questions had an answer on BOTH sides at all
     for field in bool_fields:
         a_val = (label_a.get(field) or "").strip().lower()
         b_val = (label_b.get(field) or "").strip().lower()
         if a_val and b_val:
+            # both sides answered this one — count it, and check if they agree
             present_count += 1
             matched = a_val == b_val
             if matched:
                 match_count += 1
             bool_results[field] = {"a": a_val, "b": b_val, "match": matched}
         else:
+            # one or both sides left this blank — nothing to compare, so match stays None
+            # rather than False, since "unanswered" isn't the same thing as "disagreed"
             bool_results[field] = {"a": a_val or "not stated", "b": b_val or "not stated", "match": None}
 
     bool_consistency = (match_count / present_count) if present_count else 1.0
+    # one consistency number out of categories, types, and the boolean questions —
+    # each of the 3 contributes equally (no weighting here, that happens in scoring.py instead)
     overall_consistency = (cat_consistency + type_consistency + bool_consistency) / 3.0
 
     return {

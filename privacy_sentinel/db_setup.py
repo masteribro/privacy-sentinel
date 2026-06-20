@@ -12,6 +12,8 @@ def init_db(db_path: str = "data/privacy_sentinel.db") -> str:
     conn = sqlite3.connect(str(path))
     cur = conn.cursor()
 
+    # sqlite has foreign key checking turned off by default — this switches it on,
+    # which is what makes "ON DELETE CASCADE" below actually take effect
     cur.execute("PRAGMA foreign_keys = ON;")
 
     cur.execute("""
@@ -35,6 +37,9 @@ def init_db(db_path: str = "data/privacy_sentinel.db") -> str:
             shares_data TEXT,
             data_deletion_option TEXT,
             raw JSON,
+            -- if the matching row in applications gets deleted, this row gets deleted too,
+            -- automatically — that's what lets delete_app() in data_manager.py clean up
+            -- labels and scores without writing extra DELETE statements for each table
             FOREIGN KEY (app_id) REFERENCES applications(id) ON DELETE CASCADE
         );
     """)
@@ -96,6 +101,9 @@ def _migrate(cur):
 
 
 def _add_col(cur, table, column, col_type):
+    # PRAGMA table_info lists every existing column for that table — row[1] is the
+    # column name in each row it returns. We only run ALTER TABLE if it's missing,
+    # since SQLite throws an error if you try to add a column that's already there.
     cur.execute(f"PRAGMA table_info({table})")
     existing = [row[1] for row in cur.fetchall()]
     if column not in existing:
